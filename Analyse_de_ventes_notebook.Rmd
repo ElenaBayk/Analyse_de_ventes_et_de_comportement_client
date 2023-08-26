@@ -1,0 +1,2551 @@
+---
+title: "Analyse de ventes et de comportement client"
+author: "Elena Baykova"
+date: "2023-02-12"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+
+
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE )
+
+# Installeurs ----
+
+
+if(!require("readxl")) {install.packages("readxl")}
+if(!require('tidyverse')) {install.packages("tidyverse")}
+if(!require('tibble')) {install.packages("tibble")}
+if(!require('skimr')) {install.packages("skimr")}
+if(!require('dplyr')) {install.packages("dplyr")}
+if(!require('lubridate')){install.packages('lubridate')}
+if(!require('kableExtra')){install.packages('kableExtra')}
+if(!require('plotly')){install.packages('plotly')}
+if(!require('moments')){install.packages('moments')}
+if(!require('ineq')){install.packages('ineq')}
+if(!require('pracma')){install.packages('pracma')}
+if(!require('zoo')){install.packages('zoo')}
+if(!require('pivottabler')){install.packages('pivottabler')}
+if(!require('tidyr')){install.packages('tidyr')}
+if(!require('rcompanion')){install.packages('rcompanion')}
+if(!require('questionr')){install.packages('questionr')}
+if(!require('car')){install.packages('car')}
+if(!require('rstatix')){install.packages('rstatix')}
+if(!require('scales')){install.packages('scales')}
+
+library(kableExtra)
+library(lubridate)
+library(readxl) 
+library(tidyverse)
+library(tibble)
+library(dplyr)
+library(plotly)
+library(moments)
+library(ineq)
+library(pracma)
+library(zoo)
+library(pivottabler)
+library(tidyr)
+library(rcompanion)
+library(questionr)
+library(car)
+library(rstatix)
+library(scales)
+
+
+```
+
+## L'étude des ventes  et de comportement des clients  en ligne de la librairie  `Lapage`  {.tabset .tabset-fade .tabset-pills}
+
+La réalisation du  projet est divisée en plusieurs parties présentées dans les onglets suivants<br>
+
+### Présentation du projet
+
+1. **Objectif**
+
+`Lapage` - originellement une librairie physique avec plusieurs points de vente a décidé depuis 2 ans d’ouvrir un site de vente en ligne.<br>
+L’entreprise souhaite faire analyse de ses ventes en ligne   :  de ses points forts, ses points faibles, les comportements clients en ligne, pour pouvoir ensuite comparer avec la connaissance acquise via librairies physiques, etc.<br><br>
+L'analyse contient deux parties essentielles :<br>
+
+<div style="text-align: left; display: grid; grid-template-columns: 1fr 1fr;">
+  <div>
+
+**I.	Une analyse des différents indicateurs de vente :**                        
+  •	Les indices et la présentation de chiffre d’affaires                     
+  •	L’évolution de chiffre d’affaires dans le temps     <br>
+  •	La tendance globale du chiffre d’affaires<br>
+  •	La répartition par catégorie<br>
+   </div>
+  <div>
+
+
+**II.	Une analyse plus ciblée sur les clients :**<br>
+  •	La répartition du chiffre d'affaires entre les clients<br>
+  •	Le lien entre le genre d’un client et les catégories des livres achetés<br>
+  •	Le lien entre l’âge des clients et le montant total des achats, la fréquence d’achat, la taille du panier moyen et les catégories des livres achetés<br>
+  </div>
+</div>
+
+2. **Description des données**
+
+L'étude est réalisée à l’aide de trois jeux de données fourni par le client :<br>
+
+- Un jeu de donnée compilant l’ensemble des informations clients, et respectant le règlement général sur la protection des données (RGPD).<br>
+- Un jeu de donnée compilant de l’ensemble des informations produits.<br>
+- Un jeu de donnée compilant l’ensemble des transactions, et qui nous permettra de faire le lien entre tous les jeux de données.<br>
+
+Ces données, extraite du système de gestion du site web de l’entreprise, sont relatives à une période comprise entre le 01 MARS 2021 et le 28 FÉVRIER 2023.<br>
+
+<center>
+
+![](C:/Users\Elena\Pictures\lapage.png) 
+
+</center>
+ 
+
+### Préparation des données
+
+Ici on a présenté le traitement et la préparation de nos données pour l'analyse suivante.<br>
+
+<ul>
+<li> L'importation des jeux de données</li>
+<li> L'exploration des données importées</li>
+<li> La vérification sur la doublication et la présence des données manquentes</li>
+<li> La modification du type de la date</li>
+<li> L'exploration des outliers</li>
+<li> L'agrégation des données</li>
+</ul>
+<br>
+
+
+
+> Importation des fichiers: 
+
+- L'information clients :  "customers.csv" 
+- L'information produits : "products.csv"
+- L'information transactions : "transactions.csv"
+ 
+
+
+
+```{r,}
+# Importation des fichiers
+
+#tinytex::install_tinytex(force = TRUE)
+
+
+custom <- read.csv("customers.csv")
+prod <- read.csv("products.csv")
+trans<- read.csv("transactions.csv")
+```
+
+
+
+>Fichier "Customers" : 5 premières lignes  &  Description des variables  & Exploration
+
+```{r}
+customers<-as.data.frame(custom)
+
+summary(customers)%>%
+kbl() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+
+
+head(customers, n= 5L) %>%
+  kbl() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "float_left")
+
+```
+**Exploration des données**<br>
+Recherche des doublons
+```{r}
+which (duplicated(customers), arr.ind=TRUE)
+which (duplicated(customers$client_id), arr.ind=TRUE)
+```
+Vérification des valeurs de la variable 'sex':
+```{r}
+unique(customers$sex)
+which (is.na(customers), arr.ind=TRUE)
+
+```
+>Fichier "Products" : 5 premières lignes  &  Description des variables & Exploration
+
+```{r}
+
+products<-as.data.frame(prod)
+head(products, n= 5L)%>%
+  kbl() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "float_left")
+
+summary(products) %>%
+kbl() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "float_right")
+
+```
+
+Recherches des doublons
+```{r}
+which (duplicated(products$id_prod), arr.ind=TRUE)
+which (duplicated(products), arr.ind=TRUE)
+```
+ Ouliers dans "Products"
+```{r}
+products[products$price== -1,]
+
+```
+Vérification de id_prod "T_0"
+```{r}
+products[products$id_prod== 'T_0',]
+
+```
+
+Tout d'abord le prix égaux à -1 n'est pas possible. En plus, on verra plus tard que id_prod appellé 'T_0' correspend à une procedure de vérification du fonctionnement de systeme. Donc cela ne convient pas pour notre analyse : on enleve cette ligne.
+
+Elimination d'outlier 
+```{r}
+products1 <- products[products$price!= -1,]
+summary(products1)
+```
+Verification sur la presence id_prod = 0_2245 
+```{r}
+ products1[products1$id_prod=='0_2245',]
+
+```
+
+> Fichier "Transactions" : 5 premières lignes  &  Description des variables & Exploration
+
+```{r}
+transactions<-as.data.frame(trans)
+head(transactions, n= 5L)%>%
+  kbl() %>%
+  kable_styling(bootstrap_options = "striped", full_width = F, position = "float_left")
+
+summary(transactions) %>%
+kbl() %>%
+  kable_styling()  
+
+```
+
+Changement de date en type 'date'
+
+```{r}
+mode(transactions)
+#trans<- as.data.frame(transactions)
+mode(transactions$date)
+#as.date(trans$date)
+
+transactions$date <-ymd_hms(transactions$date)
+
+```
+On trouve 200 valeurs non-definies :
+
+Verification des lignes avec des dates non-definies:
+
+```{r, eval=FALSE}
+head(transactions[is.na(transactions$date)==TRUE,])
+
+
+#length(transactions$id_prod[is.na(transactions$date)==TRUE])
+sprintf("Nombre de lignes avec des dates NaN= %s", length(transactions$id_prod[is.na(transactions$date)==TRUE]))
+
+```
+
+Selection du produit 'T_0'
+```{r}
+outliers1 <-as.data.frame(trans[trans$id_prod=='T_0',])
+
+head(outliers1,n=5L)%>%
+  kbl() %>%
+  kable_styling()
+```
+
+On trouve que ces lignes correspendent au test 'T_0'
+
+```{r}
+le<-length(outliers1$id_prod)
+sprintf("Nombre de lignes: %d ", le)
+```
+
+Elimination des lignes outliers  
+```{r}
+sum(is.na(transactions))
+```
+Nombre de lignes completes
+
+```{r}
+sum(complete.cases(transactions))
+```
+
+```{r}
+sapply(transactions, function(x) sum(complete.cases(x)))
+```
+
+Elimination des lignes avec date non-definie
+```{r}
+transactions1 <-transactions[transactions$id_prod!='T_0',]
+transactions1$date <- ymd_hms (transactions1$date) 
+summary(transactions1)
+sapply(transactions1, function(x) sum(complete.cases(x)))
+```
+
+Recherche des doublons dans 'transaction1'
+
+```{r}
+which (duplicated(transactions1), arr.ind=TRUE)
+#which (duplicated(transactions), arr.ind=TRUE)
+#which(is.na(transactions$id_prod),arr.ind=TRUE)
+#transaction[transaction$id_prod]      
+#sum(is.na(transactions$id_prod))
+
+
+
+```
+
+>Agrégation des données de tables "Products" et "Transaction" préparés
+
+```{r}
+df1<- merge(x=products1, y=transactions1, by='id_prod')
+table<- merge(x=df1, y=customers, by='client_id', all.x=T)
+
+#length(which (is.na(table), arr.ind=TRUE))
+head(table,n=4)%>%
+  kbl() %>%
+  kable_styling()
+
+```
+
+ 
+Chanegement du format de la date
+```{r}
+
+
+df2 <- table[order(table$client_id,table$date), ]
+
+df2$date <-  as.POSIXct(df2$date)
+df2$date <- format(df2$date,format='%Y-%m-%d %H:%M')
+
+head(df2)
+
+```
+Addition de la colonne 'year'
+
+```{r}
+#df2 <- table[order(table$date), ]
+#df2[df2$session_id=='s_327424',]
+df2$year <-  as.POSIXct(df2$date)
+df2$year <-format(df2$year, format="%Y")
+
+ 
+
+head(df2,n=5)%>%
+  kbl() %>%
+  kable_styling()
+
+```
+
+Nom des colonnes ayant non-definies dans leurs valeurs:
+```{r}
+names(which(sapply(df2, anyNA)))
+```
+
+
+```{r}
+df2_avec_na<-df2[(is.na(df2$price)==TRUE)|(is.na(df2$categ)==TRUE),]
+df2_avec_na
+```
+```{r}
+unique(df2_avec_na$id_prod)
+
+```
+
+
+
+
+
+Verification de la dublication de date de naissance pour chaque clien_id
+```{r}
+
+df4 <- aggregate( date ~ client_id+birth  , data = df2, FUN = length)
+
+#df4
+length(df4$client_id)
+which (duplicated(df4$client_id), arr.ind=TRUE)
+length(unique(df4$client_id))
+```
+Verification de la variation de sex pour chaque clien_id
+```{r}
+
+df5 <- aggregate( date ~ client_id+sex  , data = df2, FUN = length)
+
+#df5
+length(df5$client_id)
+which (duplicated(df5$client_id), arr.ind=TRUE)
+length(unique(df5$client_id))
+```
+Verification de la variation price pour chaque id_prod
+```{r}
+
+df6 <- aggregate( date ~ id_prod+price  , data = df2, FUN = length)
+
+#df6
+length(df6$id_prod)
+which (duplicated(df6$id_prod), arr.ind=TRUE)
+length(unique(df6$client_id))
+df7 <- df6[order(df6$id_prod), ]
+#df7
+which (duplicated(df7$id_prod), arr.ind=TRUE)
+```
+
+
+Verification de la variation sex pour chaque session_id
+```{r}
+
+df8 <- aggregate( date ~ session_id+sex  , data = df2, FUN = length)
+
+#df8
+length(df8$session_id)
+which (duplicated(df8$session_id), arr.ind=TRUE)
+length(unique(df8$session_id))
+df9 <- df8[order(df8$session_id), ]
+#df9
+which (duplicated(df9$session_id), arr.ind=TRUE)
+```
+
+> Le jeu des  données prêt à l'analyse:
+
+```{r}
+head(df2,nl=5)%>%
+  kbl() %>%
+  kable_styling()
+```
+
+
+### Dictionnaire de nettoyage de données 
+
+
+**Cette partie contient:** 
+
+- Les sources de données
+- La description et la nature des données
+- Description des outliers
+- Les mèthodes de mutation utilisés
+
+<br><br>
+
+**Les sources de données:**
+
+- customers.csv
+- products.csv
+- transactions.csv
+
+
+
+Les données prêtes a être analysées:
+
+```{r}
+head(df2,nl=5)%>%
+  kbl() %>%
+  kable_styling()
+```
+
+
+
+
+
+**Outliers:**
+
+- id_prod = 'T_0'  : 200 lignes du fichier 'transaction' ==>  verification de la fonctionnement du systeme
+
+- price = -1 : elimination car id_prod correspendant = 'T_0'
+
+
+
+
+**Valeurs aberrantes pour le CA :**
+
+
+4  client_id  et les  chiffre d'affaire correspondants: 
+ 
+ 
+* c_1609  ---    324033.35 euros
+* c_4958  ---    289760.34 euros
+* c_6714  ---    153598.92 euros
+* c_3454  ---    113637.93 euros
+
+ 
+
+
+### Chiffre d'affaire
+
+
+Dans cette partie les différents indicateurs et graphiques autour du chiffre d'affaires sont présentés.<br>
+On a également étudié l’évolution dans le temps de CA et on a mis en place une décomposition en moyenne mobile pour évaluer la tendance globale.<br>
+Pour cette reason le repartition du CA est présenté par identifiant client.<br>
+
+**Les sujets abordés:**
+
+- Chiffre d'affaire total
+- La répartition du CA
+- L'étude des different types des comptes de client
+- L’évolution  du chiffre d'affaire dans le temps
+- La tendance globale du chiffre d'affaires
+<br><br>
+
+**Les statistiques et les méthodes utilisées:**
+
+- Les statistiques univariées 
+- La décomposition en moyenne mobile
+- La  régression linéaire
+- Test ANOVA
+- Test de Kruskal-Wallis
+
+
+>  Présentation du jeu de données
+
+
+
+```{r}
+head(df2,nl=5)%>%
+  kbl() %>%
+  kable_styling()
+```
+**Chiffre d'affaire total**
+
+  
+
+  
+```{r}
+CA<-sum(df2$price)
+round(CA,2)
+```
+
+> L'étude de chiffre d'affaires  et sa répartittion 
+
+
+Creation d'une nouvelle table de CA pour chaque  identifiant client
+```{r}
+df_ca <- aggregate( price~ client_id, data = df2, FUN = sum)
+names(df_ca)[2] <-'CA_client'
+head(df_ca,nl=5)%>%
+  kbl() %>%
+  kable_styling()
+sum(df_ca$CA_client)
+```
+Présentation graphique de la distribution du chiffre d'affaires
+```{r}
+fig <- plot_ly(y = df_ca$CA_client, type = "box")
+
+
+fig
+```
+
+```{r}
+summary(df_ca$CA_client)
+```
+
+
+Observation de maximal chiffre d'affaire  par  client 
+```{r}
+df_ca[df_ca$CA_client==max(df_ca$CA_client),]
+          
+```
+```{r}
+df_c_1609 <-  df2[df2$client_id=='c_1609',]
+head(df_c_1609,nl=5)%>%
+  kbl() %>%
+  kable_styling()          
+```
+
+>Suppression des outliers (valeurs aberrantes maximales)
+
+Il y a 4 client_id ayant les CA aberrantes maximales. Afin que notre analyse soit pertinant, on va éliminaire les valeurs aberrantes de nos données.
+
+
+
+
+
+```{r}
+df_ca_norm<- df_ca[df_ca$CA_client<113637.93,]
+
+```
+Comparaison de la distribution de CA par client avant et apres l'imputation.
+
+- avec les valeurs aberrantes:
+
+```{r}
+summary(df_ca$CA_client)
+```
+- sans les valeurs aberrantes:
+```{r}
+summary(df_ca_norm$CA_client)
+```
+
+>**Distribution de chiffre d'affaire par client modifiée**
+
+Histogram des CA_client-s sans les valeurs aberrantes
+```{r , echo=FALSE}
+fig <- plot_ly(x = df_ca_norm$CA_client, type = "histogram", name = "Without outliers")
+
+
+fig
+```
+
+
+
+
+
+```{r}
+fig <- plot_ly(y = df_ca_norm$CA_client, type = "box", name=' CA par client sans les valeurs aberrantes')
+
+
+fig
+```
+
+
+Les nombres des clients et les CA correspendant au groupes principeaux 
+
+
+>**Les clients de grands comptes** 
+
+```{r}
+
+mean(df_ca_norm$CA_client[df_ca_norm$CA_client>3641])  
+length(df_ca_norm$client_id[df_ca_norm$CA_client>3641])
+```
+**Les clients de  comptes moyens**
+```{r}
+
+mean(df_ca_norm$CA_client[df_ca_norm$CA_client<3621])   
+length(df_ca_norm$client_id[df_ca_norm$CA_client<3621])
+```
+>**Les clients de très grands comptes** 
+
+```{r}
+
+mean(df_ca$CA_client[df_ca$CA_client>113630])   
+length(df_ca$client_id[df_ca$CA_client>113630])
+
+```
+
+
+
+
+
+>L'écart-type de chiffre d'affaire
+
+```{r}
+sd(df_ca_norm$CA_client)
+
+             
+```
+Skewness > 0, confirmation que la distribution est étalée à droit
+```{r}
+skewness(df_ca_norm$CA_client)
+
+                
+```
+kurtosis >3 => distribution leptokurtique : Majorité des chiffres d'affaire par client autours 500 eusros 
+```{r}
+kurtosis(df_ca_norm$CA_client)
+
+                
+```
+
+
+
+
+>**L’évolution  du chiffre d'affaire dans le temps**
+
+
+```{r}
+df_norm<- df2[(df2$client_id !='c_1609')&(df2$client_id!='c_4958')&(df2$client_id!='c_6714')&(df2$client_id!='c_3454' ),]
+
+
+```
+
+
+
+ 
+
+>Creation d'une nouvelle table:  L’évolution de CA dans le temps par mois
+
+
+
+```{r , echo=FALSE}
+df_ca_temps <- aggregate( price~ date, data = df_norm, FUN = sum)
+names(df_ca_temps)[2] <-'CA_temps'
+
+df_ca_temps$month <-  as.POSIXct(df_ca_temps$date)
+#df_ca_temps$month <-format(df_ca_temps$month, format="%M")
+df_ca_temps$month <- format(df_ca_temps$month, format="%Y:%m")
+
+df_ca_months <- aggregate( CA_temps~ month, data = df_ca_temps, FUN = sum)
+names(df_ca_months)[2] <-'CA_month'
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+```{r , echo=FALSE}
+fig <- plot_ly(x =df_ca_months$month , y = df_ca_months$CA_month  , type = "scatter", mode = 'lines')
+
+
+fig
+```
+
+
+```{r , echo=FALSE}
+df_mean_moths<-df_ca_months
+
+
+df_mean_moths1<-df_mean_moths %>%
+  mutate(MMC= rollmean(CA_month, k=2, fill=NA, align='right'))
+
+df_mean_moths1$coeff_saisonier <- df_mean_moths1$CA_month/df_mean_moths1$MMC
+
+
+
+
+
+```
+Evolution  des MMC  
+
+```{r , echo=FALSE}
+
+df_mean_moths1$month1 <- substr( df_mean_moths1$month , start = 6 , stop = 7 )
+
+
+
+```
+
+
+Les coefficients saisoniers  moyens par mois
+```{r , echo=FALSE}
+coef_moy_aj <- aggregate( coeff_saisonier~ month1, data = df_mean_moths1, FUN = mean)
+
+
+
+```
+
+Vérification de la somme des coefficients saisoniers 
+Table de coefficients saisoniers ajustés
+```{r , echo=FALSE}
+
+sprintf("La somme des coefficients saisoniers = %s", round(sum(coef_moy_aj$coeff_saisonier),3))
+coef_moy_aj$coeff_saisonier_ajustes <-coef_moy_aj$coeff_saisonier*12/sum(coef_moy_aj$coeff_saisonier)
+coef_moy_aj1<- coef_moy_aj[,c(1,3)]
+
+
+```
+
+
+
+Table de moyennes mobiles
+```{r , echo=FALSE}
+table1<-merge(x=df_mean_moths1, y=coef_moy_aj1, by='month1')
+table1$ca_desaisonnalise<-table1$CA_month/table1$coeff_saisonier_ajustes
+table1<-table1[order(table1$month),]
+
+table1%>%
+  kbl() %>%
+  kable_styling()
+```
+Nombre de lignes
+```{r , echo=FALSE}
+length(table1$month)
+```
+Evolution de CA désaisonnalisé
+```{r , echo=FALSE}
+fig <- plot_ly(x =table1$month , y = table1$ca_desaisonnalise  , type = "scatter", mode = 'lines')
+
+
+fig
+```
+
+
+
+
+```{r , echo=FALSE}
+table_<-table1[,c('month','ca_desaisonnalise')]
+```
+
+>Realisation de la prévision grace à une droite de la  régression linéaire. On utilise le méthode de moindre carrés.
+
+
+
+a= coefficient directeur de notre regression linéaire : qoutient de  covarience entre la sequence des nombre des mois et chiffres d'affaires desaisonnalisé par mois et varience de sequence des mois 
+
+b= ordonné à l'origine : la difference entre la moyenne de chiffres d'affaires desaisonnalisé et produit de coefficient directeur et moyenne de sequence des mois
+
+
+```{r , echo=FALSE}
+cov<-cov(seq(1:24),table1$ca_desaisonnalise)
+a<-cov(seq(1:24),table1$ca_desaisonnalise)/var(seq(1:24))
+print("a:")
+a
+b<- mean(table1$ca_desaisonnalise)-a*mean(seq(1:24))
+print("b:")
+b
+```
+
+```{r , echo=FALSE}
+length(table_$month)
+length(table_$ca_desaisonnalise)
+
+```
+**Construction de la tendance**
+```{r , echo=FALSE}
+
+dt<-append(table_$month, c('2023:03','2023:04','2023:05','2023:06','2023:07','2023:08','2023:09','2023:10','2023:11','2023:12','2024:01','2024:02'), after = length(table_$month))
+#length(dt)
+
+m3<-(a*25+b)*coef_moy_aj1$coeff_saisonier[coef_moy_aj1$month1=='03']
+
+m4<-(a*26+b)*coef_moy_aj1$coeff_saisonier[coef_moy_aj1$month1=='04']
+
+m5<-(a*27+b)*coef_moy_aj1$coeff_saisonier[coef_moy_aj1$month1=='05']
+
+m6<-(a*28+b)*coef_moy_aj1$coeff_saisonier[coef_moy_aj1$month1=='06']
+
+m7<-(a*29+b)*coef_moy_aj1$coeff_saisonier[coef_moy_aj1$month1=='07']
+
+m8<-(a*30+b)*coef_moy_aj1$coeff_saisonier[coef_moy_aj1$month1=='08']
+
+m9<-(a*31+b)*coef_moy_aj1$coeff_saisonier[coef_moy_aj1$month1=='09']
+
+m10<-(a*32+b)*coef_moy_aj1$coeff_saisonier[coef_moy_aj1$month1=='10']
+
+m11<-(a*33+b)*coef_moy_aj1$coeff_saisonier[coef_moy_aj1$month1=='11']
+
+m12<-(a*34+b)*coef_moy_aj1$coeff_saisonier[coef_moy_aj1$month1=='12']
+
+m13<-(a*35+b)*coef_moy_aj1$coeff_saisonier[coef_moy_aj1$month1=='01']
+
+m14<-(a*36+b)*coef_moy_aj1$coeff_saisonier[coef_moy_aj1$month1=='02']
+#coef_moy_aj1$coeff_saisonier_ajustes[coef_moy_aj1$month1=='03']      
+
+dc<- append(table1$CA_month, c(m3,m4,m5,m6,m7,m8,m9,m10,m11,m12,m13,m14) ,after = length(table_$ca_desaisonnalise))
+#length(dc)
+table_1<-data.frame(dt,dc)
+
+
+
+
+
+```
+
+
+
+>Tendance d'évaluation du chiffre d'affaires  jusqu'a Fév. 2024 (si un résidu epsilon ne surgisse pas )
+
+```{r , echo=FALSE}
+fig <- plot_ly(x =table_1$dt , y = table_1$dc  , type = "scatter", mode = 'lines')
+#fig <- fig %>% layout(
+  #       xaxis = list(nticks=36)
+  #       )
+
+
+fig
+```
+
+---
+
+>**Repartition de Chiffre d'affaires  par categories**
+
+```{r , echo=FALSE}
+df_cat_norm<- aggregate( price~ categ, data = df_norm, FUN = sum)
+names(df_cat_norm)[names(df_cat_norm) == "price"] <- "CA"
+df_cat_norm%>%
+  kbl() %>%
+  kable_styling()
+```
+```{r , echo=FALSE}
+dfr<-df_cat_norm[,c('categ','CA')]
+colors <- c('rgb(211,94,96)', 'rgb(128,133,133)', 'rgb(144,103,167)')
+
+fig <- plot_ly(dfr,labels=~categ, values =~CA,type='pie',
+               textposition = 'inside',
+        textinfo = 'label+percent',
+        marker = list(colors = colors,
+                      line = list(color = '#FFFFFF', width = 1)))
+fig <- fig %>% layout(title = "chiffre d'affaire par categories",
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+fig
+
+```
+
+
+
+**Problématique :** évaluer la dépendence du chiffre d'affaire en fonction de la catégorie de livres
+
+
+**Choix du test :** On a 2 variables: - chiffre d'affaires - variable quantitative continue
+                                  - categorie de livre - variable qualitative avec plus que 2 groupes
+    
+Par conséquent le choix de notre test - **test ANOVA** avec  le facteur = chiffre d'affaires, les groupes= 3 categories de livres
+
+
+
+Anova, test de Ficher pour la repartition de CA par categories 
+
+
+
+
+Préparation de données
+
+```{r , echo=FALSE}
+
+ag_ca<- aggregate(price~categ+client_id,df_norm, sum )
+head(ag_ca)
+```
+
+
+
+
+
+**Modèle  du test. **
+
+Problémathique: Est_ce que les chiffre d'affaires sont liés à categorie de livre?
+
+L'hypothèse H0 : CA et categorie de livres sont indépendants
+
+L'hypothèse H1 : CA et categorie sont liés
+
+Méthodologie:
+
+* On mésure l'écart entre la variation intragroupe et variation intergroupe.
+* Utilisation de la statistique F(ratio).
+* Calcul de  degré de liberté et définition de p-value.
+* Comparaison de F calculé avec F théorique   
+
+Interpretation:
+
+* si F calcule >F théorique,  rejet de H0 => validation de H1. Donc CA est lié à la division en categories
+
+soit  
+
+* si p-value< alfa  (coefficient de risque, standart 0,05), rejet de H0 => validation de H1, CA est lié à la division en categories
+
+
+
+
+Application du Test
+```{r , echo=FALSE}
+res.aov <- aov(price ~ categ, data = ag_ca)
+res.aov
+
+summary(res.aov)
+
+```
+
+
+
+**Vérification des conditions du test ANOVA:**
+
+
+- Observations indépendqntes
+- Les données distribuées normalement(normalité des residus )
+- Pas de donées extêmes
+- Variances des groupes à peu près égales
+- Effectifs par classes à peu près égaux
+ 
+
+
+
+
+Vérification sur la  normalité des residus 
+
+```{r , echo=FALSE}
+model <- aov(price ~ categ, data = ag_ca)
+
+```
+
+Dans le graphique ci-dessous, les quantiles des résidus sont tracés par rapport aux quantiles de la distribution normale. Une ligne de référence de 45 degrés est également tracée.
+
+La courbe de probabilité normale des résidus est utilisée pour vérifier l’hypothèse selon laquelle les résidus sont normalement répartis. Il devrait suivre approximativement une ligne droite qui correspend bien à la distribution normale.
+
+```{r , echo=FALSE}
+qqnorm(model$residuals)
+qqline(model$residuals)        
+```
+On voit le décallage de notre probabilité normale des résidus. Cela signifie que nos résidus ne suivent pas une loi normale, donc la condition du test ANOVA n'est pas réspectée.
+
+
+Dans ce cas on applique un test non-parametrique: ** Test de Kruskal-Wallis**
+
+
+
+```{r , echo=FALSE}
+#kruskal.test(age_prod$id_prod) 
+
+res.kruskal <-kruskal_test(price ~ categ, data= ag_ca )
+res.kruskal
+```
+```{r , echo=FALSE}
+ag_ca %>%kruskal_effsize(price ~ categ)  
+```
+L’estimation eta-carré:
+
+0,01- < 0,06 (petit effet), 0,06 - < 0,14 (effet modéré) et >= 0,14 (effet important).
+
+Dans notre cas l'effet est minimal est presque égal à 0 .
+
+
+
+
+
+
+>**Conclusion:
+
+Le chiffre d'affaire de depend pas de categorie de livres**
+
+
+
+
+```{r , echo=FALSE}
+ #df_norm$price[df_norm$categ==1]
+#df_norm
+
+fig <- plot_ly( y=df_norm$price[df_norm$categ==0],type='box',name='categ 0')
+fig <- fig %>% add_trace(y =df_norm$price[df_norm$categ==1],name='categ 1')  
+fig <- fig %>% add_trace(y =df_norm$price[df_norm$categ==2],name='categ 2') 
+
+fig
+
+```
+
+
+### Références 
+
+L'étude  sur les références était réalisé pour voir un peu les tops et les
+flops des ventes pendant 2 années, la répartition par catégorie et évolution des ventes.<br>
+
+**Les sujets abordés :**
+
+- Evolution de chiffre d'affaires en totalite et par categorie
+- Nombre des produits par categorie
+- Repartition de CA par jour et par categorie en Octobre 2021 (1er référence)
+- Repartition de CA par jour et par categorie en Fevrier 2023 (2ème référence)
+- Evaluation des chiffres d'affaires de chaque categorie pendant 2 ans
+
+
+
+
+
+
+>Présentation des données
+
+```{r , echo=FALSE}
+df_norm_1<-as.data.frame(df_norm)
+
+
+df_norm_1$month <-  as.POSIXct(df_norm_1$date)
+df_norm_1$month <- format(df_norm_1$month, format="%m")
+
+
+head(df_norm_1)%>%
+  kbl() %>%
+  kable_styling()
+
+#df_ca_temps$month <-format(df_ca_temps$month, format="%M")
+#df_ca_temps$month <- format(df_ca_temps$month, format="%Y-%m")
+
+
+
+
+```
+Pivot table
+```{r , echo=FALSE}
+mt<-qpvt(df_norm_1, c("year","month"), "categ",  "sum(price, na.rm=TRUE)")
+pvt_total<-mt$asDataFrame()
+#pvt_total<-pvt_total[1:24,1:3]
+pvt_total[is.na(pvt_total)] <- 0
+pvt_total <- cbind(month = rownames(pvt_total), pvt_total)
+#rownames(pv) <- 1:nrow(pv)
+names(pvt_total)[names(pvt_total) == "0"] <- "cat0"
+names(pvt_total)[names(pvt_total) == "1"] <- "cat1"
+names(pvt_total)[names(pvt_total) == "2"] <- "cat2"
+
+pvt_total1<-pvt_total[-c(11,24,27,28),]
+
+
+```
+
+```{r , echo=FALSE}
+
+
+fig <- plot_ly(pvt_total1, x = ~ month, y = ~cat0, type = 'bar', name = 'cat0')
+fig <- fig %>% add_trace(y = ~ cat1, name = 'cat1')
+fig <- fig %>% add_trace(y = ~ cat2, name = 'cat2')
+fig <- fig %>% layout(yaxis = list(title = 'CA'), barmode = 'stack', title='Evolution de CA en totalite et par categorie')
+#fig <- fig %>% add_trace(x =pvt_total$month , y = pvt_total$Total  , type = "scatter", mode = 'lines',name='total cat')
+fig
+
+
+```
+```{r , echo=FALSE}
+
+un_prod0<-length(unique(df_norm_1$id_prod[df_norm_1$categ==0]))
+un_prod1<-length(unique(df_norm_1$id_prod[df_norm_1$categ==1]))
+un_prod2<-length(unique(df_norm_1$id_prod[df_norm_1$categ==2]))
+
+
+df_prod<-data.frame(Num_prod=c(un_prod0,un_prod1,un_prod2),cat=c(0,1,2))
+
+
+
+fig <- plot_ly(df_prod, x = ~cat, y = ~Num_prod, type = 'bar',text= ~Num_prod, 
+        marker = list(color = 'rgb(158,202,225)',
+                      line = list(color = 'rgb(8,48,107)',
+                                  width = 1.5)))
+fig <- fig %>% layout(title = "Nombre des produits par categorie",
+         xaxis = list(title = ""),
+         yaxis = list(title = ""))
+
+fig
+
+```
+
+
+
+
+
+>**Repartition de CA par jour et par categorie en Octobre 2021(notre flop)**
+
+
+```{r , echo=FALSE}
+ref_min<- df_norm_1[(as.numeric(df_norm_1$month)==10)&(df_norm_1$year==2021),]
+
+
+ref_min$date <-  as.POSIXct(ref_min$date)
+ref_min$date<- format(ref_min$date,format='%d')
+
+head(ref_min)%>%
+  kbl() %>%
+  kable_styling()
+
+
+```
+
+
+
+```{r , echo=FALSE}
+ref_min_day <- aggregate(price~ date, data = ref_min, FUN = sum)
+names(ref_min_day)[2] <-'CA_jour'
+
+
+
+
+```
+
+
+
+>Les chiffres d'affaires par jour et par categorie
+
+```{r , echo=FALSE, eval=TRUE}
+pt<-qpvt(ref_min, "date", "categ",  "sum(price, na.rm=TRUE)")
+pvt<- pt$asDataFrame()
+pv<-pvt[1:31,1:3]
+pv[is.na(pv)] <- 0
+pv <- cbind(date = rownames(pv), pv)
+rownames(pv) <- 1:nrow(pv)
+names(pv)[names(pv) == "0"] <- "cat0"
+names(pv)[names(pv) == "1"] <- "cat1"
+names(pv)[names(pv) == "2"] <- "cat2"
+
+
+
+
+```
+
+
+
+
+
+```{r , echo=FALSE}
+x <-pv$date
+
+fig <- plot_ly(pv, x = ~ date, y = ~cat0, type = 'bar', name = 'cat0')
+fig <- fig %>% add_trace(y = ~ cat1, name = 'cat1')
+fig <- fig %>% add_trace(y = ~ cat2, name = 'cat2')
+fig <- fig %>% layout(yaxis = list(title = 'CA'), barmode = 'stack', title='Octobre 2021')
+fig <- fig %>% add_trace(x =ref_min_day$date , y = ref_min_day$CA_jour  , type = "scatter", mode = 'lines',name='total cat')
+fig
+
+
+```
+
+
+
+
+> **Repartition de CA par jour et par categorie en Fevrier 2023(2eme flop)**
+
+
+
+```{r , echo=FALSE}
+ref_min1<- df_norm_1[(as.numeric(df_norm_1$month)==02)&(df_norm_1$year==2023),]
+
+
+ref_min1$date <-  as.POSIXct(ref_min1$date)
+ref_min1$date<- format(ref_min1$date,format='%d')
+
+
+```
+
+```{r , echo=FALSE}
+ref_min_day1 <- aggregate(price~ date, data = ref_min1, FUN = sum)
+names(ref_min_day1)[2] <-'CA_jour'
+ 
+
+```
+
+
+
+```{r , echo=FALSE}
+pvt<-qpvt(ref_min1, "date", "categ",  "sum(price, na.rm=TRUE)")
+pvt1<- pvt$asDataFrame()
+ pv1<-pvt1[1:28,1:3]
+pv1[is.na(pv1)] <- 0
+pv1 <- cbind(date = rownames(pv1), pv1)
+rownames(pv1) <- 1:nrow(pv1)
+names(pv1)[names(pv1) == "0"] <- "cat0"
+names(pv1)[names(pv1) == "1"] <- "cat1"
+names(pv1)[names(pv1) == "2"] <- "cat2"
+
+
+```
+
+
+
+```{r , echo=FALSE}
+
+sums<-pv1$cat0+pv1$cat1+pv1$cat2
+fig <- plot_ly(pv1, x = ~ date, y = ~cat0, type = 'bar', name = 'cat0')
+fig <- fig %>% add_trace(y = ~ cat1, name = 'cat1')
+fig <- fig %>% add_trace(y = ~ cat2, name = 'cat2')
+fig <- fig %>% layout(yaxis = list(title = 'CA'), barmode = 'stack', title='Fevrier 2023')
+
+fig
+
+
+```
+
+Il n'y pas de forte fluctuation dans les categories en Fevrier 2023
+
+
+
+
+
+**Evaluation des chiffres d'affaires de chaque categorie**
+
+```{r , echo=FALSE}
+
+df_cat0_temps<-df_norm_1[df_norm_1$categ==0,]
+
+ag_cat0_temps<-aggregate(df_cat0_temps$price,by=list(df_cat0_temps$year,df_cat0_temps$month), FUN=sum )
+
+ag_cat0_temps$data<-paste(ag_cat0_temps$Group.1,ag_cat0_temps$Group.2,sep='-')
+#ag_cat0_temps$data<-as.numeric(ag_cat0_temps$data)
+ag_cat0_temps$data<-ym(ag_cat0_temps$data)
+ag_cat0_temps1<-as.data.frame(ag_cat0_temps[,c('data','x')])
+ag_cat0_temps1<-ag_cat0_temps1[order(ag_cat0_temps1$data),]
+ag_cat0_temps1<-data.frame(data=ag_cat0_temps1$data,CA_cat0=ag_cat0_temps1$x )
+
+
+df_cat1_temps<-df_norm_1[df_norm_1$categ==1,]
+
+ag_cat1_temps<-aggregate(df_cat1_temps$price,by=list(df_cat1_temps$year,df_cat1_temps$month), FUN=sum )
+
+ag_cat1_temps$data<-paste(ag_cat1_temps$Group.1,ag_cat1_temps$Group.2,sep='-')
+#ag_cat0_temps$data<-as.numeric(ag_cat0_temps$data)
+ag_cat1_temps$data<-ym(ag_cat1_temps$data)
+ag_cat1_temps1<-as.data.frame(ag_cat1_temps[,c('data','x')])
+ag_cat1_temps1<-ag_cat1_temps1[order(ag_cat1_temps1$data),]
+ag_cat1_temps1<-data.frame(data=ag_cat1_temps1$data,CA_cat1=ag_cat1_temps1$x )
+
+
+df_cat2_temps<-df_norm_1[df_norm_1$categ==2,]
+
+ag_cat1_temps<-aggregate(df_cat2_temps$price,by=list(df_cat2_temps$year,df_cat2_temps$month), FUN=sum )
+
+ag_cat1_temps$data<-paste(ag_cat1_temps$Group.1,ag_cat1_temps$Group.2,sep='-')
+#ag_cat0_temps$data<-as.numeric(ag_cat0_temps$data)
+ag_cat1_temps$data<-ym(ag_cat1_temps$data)
+ag_cat1_temps2<-as.data.frame(ag_cat1_temps[,c('data','x')])
+ag_cat1_temps2<-ag_cat1_temps2[order(ag_cat1_temps2$data),]
+ag_cat1_temps2<-data.frame(data=ag_cat1_temps2$data,CA_cat2=ag_cat1_temps2$x )
+
+fig <-plot_ly(x =ag_cat0_temps1$data , y =ag_cat0_temps1$CA_cat0 , type = "scatter", mode = 'points',name='total cat0')
+fig <- fig %>% add_trace(x =ag_cat1_temps1$data , y =ag_cat1_temps1$CA_cat1, type = "scatter", mode = 'lines',name='total cat1')
+fig <- fig %>% add_trace(x =ag_cat1_temps2$data , y =ag_cat1_temps2$CA_cat2, type = "scatter", mode = 'lines',name='total cat2')
+fig
+
+
+```
+
+
+
+
+
+
+
+### Profil client
+
+Cette partie est consacrée  au profile de clients et à l'étude de leur  comportement. <br>
+
+**Les sujets abordés :** 
+
+- La répartition du chiffre d'affaires entre les clients 
+- La répartition des clients par categoire d'age 
+- La répartition des clients par genre <br><br>
+
+**Les méthodes et modèles utilisés:**
+
+- La courbe de Lorenz
+- Le test Chi2
+
+
+
+
+
+>**La répartition du chiffre d'affaires entre les clients**
+
+
+
+Niveau d'inegalite dans la repartition des CA  par clients = 40%
+```{r}
+sprintf("Indice de gini pour CA: %s ", round(ineq(df_ca_norm$CA_client,type="Gini"),3))
+
+                
+```
+
+Fonction Courbe de Lorenz with plotly
+```{r , echo=FALSE}
+ca <- unique(df_ca_norm$CA_client)
+n<-length(ca)
+lorenz <- cumsum(sort(ca))/sum(ca)
+
+xaxis <-linspace(0-1/n,1+1/n,n=length(lorenz))
+
+```
+
+
+```{r , echo=FALSE}
+data <- data.frame(xaxis,lorenz)
+data1 <-data.frame(c(0,1),c(0,1))
+fig <- plot_ly(data, x = ~xaxis, y = ~lorenz, name = 'Courbe de Lorenz de CA', type = 'scatter', mode = 'lines+markers') 
+fig <- fig %>% add_trace(x =c(0,1), y =c(0,1),   name = 'première bissectrice', mode = 'lines+markers') 
+
+fig
+
+                
+```
+
+
+
+
+
+
+>**Repartition des clients par categoire d'age **
+
+
+*Problématique :** évaluer la dépendence  de la catégorie de livres en fonction de categroie d'age des clients
+
+
+**Choix du test :** On a 2 variables:
+
+- categorie d'age - variable quantitative qualitative avec plus que 2 groupes
+
+- categorie de livre - variable qualitative avec plus que 2 groupes
+
+    
+Par conséquent le choix de notre test - **test Chi2**
+
+
+
+
+
+
+
+
+
+
+**Préparation de données**
+
+Définition de categorie d'age:
+
+**Junior**: les clients plus jeunes que 25 ans
+
+**Adulte**: les clients  de 25 ans à 49 ans
+
+**Senior**: les clients ayant plus de 49 ans
+
+
+
+
+
+
+
+```{r , echo=FALSE}
+
+#Addition de la categorie d'age
+
+#head(df_norm_1)
+df_norm_age <-df_norm_1
+
+
+df_norm_age$age<- as.numeric(df_norm_age$year)-as.numeric(df_norm_age$birth)
+#head(df_norm_age)
+#unique(df_norm_age$age)
+categ_age<-lapply (df_norm_age$age,FUN= function(x){if (x<25 ){
+    x<-'junior'}
+  else if (25<=x & x<=49){
+    x<-'adulte'
+  }
+  else if (x>49){
+    x<-'senior'
+    
+  }
+  (x)
+  })
+df_norm_age$categ_age<-as.character(categ_age) 
+
+```
+
+
+Aggregation du nombre d'achats par categorie d'age
+```{r , echo=FALSE}
+pvta<-qpvt(df_norm_age,  "categ","categ_age", "n()")
+
+pvta1<- pvta$asDataFrame()
+pvta1<-pvta1[1:3,1:3]
+
+pvta1 <- cbind(categorie = rownames(pvta1),pvta1)
+
+pvta1
+#pvtc2<-data.frame(categorie=pvtc1$categorie,f=pvtc1$f,m=pvtc1$m,total=pvtc1$Total) 
+#pvtc2
+
+
+
+```
+
+Condition du test Chi2: au moins 5 éléments par case est respectée.
+
+
+
+Test Chi2 pour les categories d'age et categoie de livres.
+
+
+
+**Modèle  du test. **
+
+
+
+**Problémathique:** Est_ce que les achats dans chaque categorie de livres liés à categorie d'age?
+
+L'hypothèse H0 : categorie d'age et categorie de livres sont indépendants
+
+L'hypothèse H1 : categorie d'age et categorie de livres sont liés
+
+
+
+**Méthodologie:**
+
+
+* Réalisation de tableau croisé avec les valeurs observée
+
+* Réalisation de tableau croisé avec les valeurs calculées
+* Comparaison de deux tableaux 
+
+* Calcul de Chi2 et degré de liberté
+
+* Comparaison de Chi2 calculé et théorique correspendant au degré de liberté
+
+soit
+
+* Comparaison de p-value et coefficient de risque (0,05)
+
+
+
+
+**Interpretation:**
+
+* si Chi2 calcule > Chi2 théorique,  rejet de H0 => validation de H1. Donc le choix de categorie de livre  est lié à la  categorie d'age
+
+soit  
+
+* si p-value< alfa  (coefficient de risque, standart 0,05), rejet de H0 => validation de H1 
+
+
+
+
+```{r , echo=FALSE}
+chisq.test(df_norm_age$categ_age, df_norm_age$categ, correct=FALSE)
+Xsq<-chisq.test(df_norm_age$categ_age, df_norm_age$categ,  correct=FALSE)
+Xsq$observed   # observed counts (same as M)
+Xsq$expected   # expected counts under the null
+
+
+cramer.v(table(df_norm_age$categ_age, df_norm_age$categ))
+#cramer.v(plt3)
+
+```
+
+p-value< 0.05 alors la dependance existe.
+
+
+Coefficient de Cramer= 36% => Le choix de categorie de livres depend de categorie d'age sur 36%
+
+
+
+
+
+
+```{r , echo=FALSE}
+fig <- plot_ly(pvta1, x = ~ categorie, y = ~adulte , type = 'bar', name = 'adulte', text=~adulte)
+fig <- fig %>% add_trace(y = ~ junior, name = 'junior',text=~junior)
+fig <- fig %>% add_trace(y = ~ senior, name = 'senior',text=~senior)
+fig <- fig %>% layout(yaxis = list(title = "Nombre d'achats"), barmode = 'stack', title="Nombre d'achats par categorie d'age et categorie des livres")
+
+fig
+
+
+
+
+
+```
+
+
+
+
+
+>**Repartition des clients par genre **
+
+```{r , echo=FALSE}
+head(df_norm_1)
+
+
+```
+
+
+
+<div class="row">
+<div class="col-md-4">
+ 
+Nombre des clients femmes et hommes 
+```{r , echo=FALSE}
+gnr<-aggregate(client_id~sex,df_norm_1, FUN="length" )
+gnr<-as.data.frame(gnr)
+gnr
+
+#gnr<-table(df_norm_1$sex,df_norm_1$client_id)
+
+```
+```{r , echo=FALSE}
+
+colors <- c('rgb(211,94,96)', 'rgb(128,133,133)')
+
+fig <- plot_ly(gnr,labels=~sex, values =~client_id, type='pie',
+               textposition = 'inside',
+        textinfo = 'label+percent',
+        marker = list(colors = colors,
+                      line = list(color = '#FFFFFF', width = 1)))
+fig <- fig %>% layout(title = "Proportion des femmes et des hommes parmi les clients",
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+fig
+
+```
+</div>
+
+<div class="row">
+<div class="col-md-2">
+</div>
+<div class="row">
+<div class="col-md-4">
+Les chiffres d'affaires apportés par les femmes et les hommes
+```{r , echo=FALSE}
+gna<-aggregate(price~sex,df_norm_1, FUN="sum" )
+gna<-as.data.frame(gna)
+gna$percent<-round(gna$price/sum(gna$price),2)
+gna
+#gnr<-table(df_norm_1$sex,df_norm_1$client_id)
+
+```
+
+
+```{r , echo=FALSE}
+
+colors <- c("blue", "green")
+
+fig <- plot_ly(gna,labels=~sex, values =~price, type='pie',
+               textposition = 'inside',
+        textinfo = 'label+percent',
+        marker = list(colors = colors,
+                      line = list(color = '#FFFFFF', width = 1)))
+fig <- fig %>% layout(title = "Proportion de CA apporté par les femmes et les hommes",
+         xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
+
+fig
+
+
+
+
+
+```
+
+
+</div></div></div></div>
+
+<br>
+
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Liens entre les variables
+
+Dans cette partie on a présenté les liens entre les différentes variables et on a étudié leurs corrélations. <br>
+Pour cela on a utilisé les différents modèles dont on a testé et interprété.<br>
+
+**Les modèles de test appliqués dans cette partie:** 
+
+ - Test Chi2
+ - Test de  Student et correlation
+ - Régression linéaire
+ - Test ANOVA
+
+
+
+> 1) **Lien: genre et categories des livres**<br>
+
+Choix du test : On a 2 variables: - genre - variable  qualitative 
+                                  - categorie de livre - variable qualitative
+    
+Par conséquent le choix de notre test - **test Chi2**
+
+
+```{r , echo=FALSE}
+pvtc<-qpvt(df_norm_1,  "categ","sex", "n()")
+
+pvtc1<- pvtc$asDataFrame()
+pvtc1<-pvtc1[1:3,1:2]
+
+pvtc1 <- cbind(categorie = rownames(pvtc1),pvtc1)
+
+pvtc1
+#pvtc2<-data.frame(categorie=pvtc1$categorie,f=pvtc1$f,m=pvtc1$m,total=pvtc1$Total) 
+#pvtc2
+
+
+
+```
+
+Condition du test Chi2: au moins 5 éléments par case est respectée.
+
+
+
+Test Chi2 pour les categories d'age et categoie de livres.
+
+**Modèle  du test.** 
+
+**Problémathique:** Est_ce que le genre de client et  lié à categorie de livres?
+
+L'hypothèse H0 : genre et categorie de livres sont indépendants
+
+L'hypothèse H1 : genre et categorie de livres sont liés
+
+**Méthodologie:**
+
+* Réalisation de tableau croisé avec les valeurs observée
+
+* Réalisation de tableau croisé avec les valeurs calculées
+
+* Comparaison de deux tableaux 
+
+* Calcul de Chi2 et degré de liberté
+
+* Comparaison de Chi2 calculé et théorique correspendant au degré de liberté
+
+soit
+
+* Comparaison de p-value et coefficient de risque (0,05)
+
+
+
+
+
+**Interpretation:**
+*si Chi2 calcule > Chi2 théorique,  rejet de H0 => validation de H1. Donc le choix de categorie de livre  est lié à la  categorie d'age
+
+soit 
+
+*si p-value< alfa  (coefficient de risque, standart 0,05), rejet de H0 => validation de H1
+
+
+
+```{r , echo=FALSE}
+# Methode complimentaire
+
+#op<-as.matrix(table(df_norm_1$sex,df_norm_1$categ))
+#op
+#total<-summary.table(op)
+#total
+
+
+chisq.test(df_norm_1$categ, df_norm_1$sex, correct=FALSE)
+Xsq<-chisq.test(df_norm_1$sex,df_norm_1$categ,  correct=FALSE)
+Xsq$observed   # observed counts (same as M)
+Xsq$expected   # expected counts under the null
+
+
+cramer.v(table(df_norm_1$sex,df_norm_1$categ))
+
+#Xsq$residuals  # Pearson residuals
+#Xsq$stdres     # standardized residuals
+```
+Les variables sont dependantes. 
+
+Coefficient de Cramer =  0.005653247 => lien faible
+
+
+**Conclusion:** Le nombre  d'achats dans chaque categorie de livres ne depend pas de genre des clients.
+
+
+
+
+
+```{r , echo=FALSE}
+
+
+fig <- plot_ly(pvtc1, x = ~ categorie, y = ~ m , type = 'bar', name = 'men' )
+fig <- fig %>% add_trace(y = ~ f, name = 'women')
+
+fig <- fig %>% layout(yaxis = list(title = 'CA'), barmode = 'stack', title="Lien entre le genre d'un client et le nombre d'achats dans les categories")
+
+fig
+
+
+```
+
+
+
+
+
+
+
+
+
+> 2) **Lien: Age - montant d'achats total**
+
+
+Choix du test : On a 2 variables: - age - variable quantitative discrete
+                                  - montant d'achats total - quantitative continue
+    
+Par conséquent le choix de notre test - **test de  Student et correlation** 
+
+
+
+Préparation des données:
+```{r , echo=FALSE}
+df_norm_age<-as.data.frame(df_norm_age)
+df_age<-aggregate(price~age+client_id,df_norm_age, sum)
+
+head(df_age)
+
+  
+```
+
+Moyen montat d'achat total par age 
+```{r , echo=FALSE}
+df_norm_age<-as.data.frame(df_norm_age)
+df_age2<-aggregate(price~age,df_age, mean)
+
+head(df_age2)
+
+  
+```
+
+
+
+
+Le graphiaue sur les donnees ponderes
+
+```{r , echo=FALSE}
+fig <- plot_ly(data = df_age2, x = ~age, y = ~price, type='scatter', mode='markers'
+)
+
+
+fig
+```
+ 
+
+
+
+Application du test de correlation
+```{r , echo=FALSE}
+cor.test(df_age2$age,df_age2$price,use="complete.obs")
+
+```
+Coefficient de correlation de Pearson: r = -0.83 
+
+
+ Il est négatif, donc les deux variables évoluent dans les sans opposé 
+ 
+
+Coefficient de détermination
+```{r , echo=FALSE}
+
+round(cor(df_age2$age,df_age2$price,use="complete.obs")^2,2)
+```
+
+R au carre: 69% des variations de montats totales d'achats  s'expliquent par l'age de client
+
+
+
+
+Vérification si la regression est linéaire
+```{r}
+lm1_age <-lm(price~age, data=df_age2) 
+lm1_age
+            
+```
+-4.318*age +640.582
+
+
+```{r , echo=FALSE}
+fig <- plot_ly(data = df_age2, x = ~age, y = ~price, type='scatter', mode='markers',name = "montant d'achat total"
+)
+
+fig <- fig %>% add_trace(x =df_age2$age , y =df_age2$age*(-4.318)+640.582, name = "droit de regression lineaire",  mode = "line", type = "scatter", text='-4.318*age+640.582')
+
+fig
+```
+
+On peut  effectuer le test Student pour  savoir s'il y a une association linéaire significative entre 2 variables linéaires entre elles, c'est à dire est-ce que leur relation linéaire est le fruit du hasard ou est-ce qu'il y a une relation de cause à effet / de corrélation entre les deux.
+
+
+
+
+Conditions du test Student: 
+- les variables suivent la loi normale
+- pas de valeurs extremes
+- l'égalité de variances
+
+
+
+Verification de normalite de chaque variable, 
+
+skewness et kurtosis
+
+```{r , echo=FALSE}
+skewness(df_age2$age)
+kurtosis(df_age2$age)
+
+
+
+skewness(df_age2$price)
+kurtosis(df_age2$price)
+  
+```
+Lorsque la taille des échantillons est suffisamment grande (n >30), on peut ignorer le test de normalité sans problème majeur.
+
+Verification d'égalité des variances:
+```{r}
+var.test(df_age2$age,df_age2$price)
+```
+P-value est plus petite que notre coefficient de risque= 0.05, donc l'hypothese que les variances des deux varibles  sont egales est rejeté.Par consequent on ne peut pas utiliser le Test Student pour confirmer que le coefficient de correlation est statistiqument significatif. Il faut utiliser le test non-parametrique
+
+
+
+
+
+
+> 3) **Lien : Age - frequence d'achats**
+
+
+Choix du test : On a 2 variables: - age - variable quantitative discrete
+                                  - fréquencet d'achats  - quantitative continue
+    
+Par conséquent le choix de notre test - **correlation **
+
+
+
+Préparation des données:
+
+```{r , echo=FALSE}
+head(df_norm_age)
+```
+Moyen nombre d'achats par l'age
+
+```{r , echo=FALSE}
+df_age_f<-aggregate(price~age+client_id, df_norm_age, length)
+
+df_agef2<-aggregate(price~age,df_age_f, mean)
+names(df_agef2)[names(df_agef2) == "price"] <- "nombre_d_achats"
+head(df_agef2)
+```
+```{r , echo=FALSE}
+fig <- plot_ly(data = df_agef2, x = ~age, y = ~nombre_d_achats, type='scatter', mode='markers'
+)
+
+
+fig
+```
+
+
+Vérification de normalité des variables
+```{r , echo=FALSE}
+skewness(df_agef2$age)
+skewness(df_agef2$nombre_d_achats)
+
+
+kurtosis(df_agef2$age)
+kurtosis(df_agef2$nombre_d_achats)
+
+```
+Lorsque la taille des échantillons est suffisamment grande (n >30), on peut ignorer le test de normalité sans problème majeur.
+
+Verification d'égalité des variances:
+```{r}
+var.test(df_agef2$nombre_d_achats,df_agef2$age)
+```
+P-value est plus petit que notre coefficioent de risque= 0.05, donc L'hypothese que les variances sont egales est rejeté.Par consequent on ne peut pas utiliser le Test Student pour confirmer le lien entre nos variables statistiquement. 
+
+
+
+
+
+
+
+Application du test
+```{r , echo=FALSE}
+cor.test(df_agef2$age,df_agef2$nombre_d_achats,use="complete.obs")
+```
+Coefficient de correlation de Pearson: r = -0.27 
+
+
+ Il est négatif, donc les deux variables évoluent dans les sans opposé 
+
+Coefficient de détermination
+```{r , echo=FALSE}
+
+round(cor(df_agef2$age,df_agef2$nombre_d_achats,use="complete.obs")^2,2)
+```
+Dependance est assez  faible. 8% du nombre d'achats s'explique par l'age de client
+
+
+Vérification si la regression est  linéaire
+```{r}
+lm1_age <-lm(nombre_d_achats~age, data=df_agef2) 
+lm1_age
+            
+```
+```{r , echo=FALSE}
+fig <- plot_ly(data = df_agef2, x = ~age, y = ~nombre_d_achats, type='scatter', mode='markers',name = "montant d'achat total"
+)
+
+fig <- fig %>% add_trace(x =df_agef2$age , y =df_agef2$age*(-0.1292)+30.1836, name = "droit de regression lineaire",  mode = "line", type = "scatter", text='-4.318*age+640.582')
+
+fig
+```
+
+La regression n'est pas lineaire.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+> 3) **Lien: Age - la taille du panier moyen**
+
+
+```{r , echo=FALSE}
+#head(df_norm_age)
+```
+
+Panier moyen de chaque client
+```{r , echo=FALSE}
+#df_age_f
+#df_age
+
+df_age_p<-merge(df_age,df_age_f, by=c('age','client_id'))
+
+names(df_age_p)[names(df_age_p) == "price.x"] <- "montant_d_achats"
+names(df_age_p)[names(df_age_p) == "price.y"] <- "nombre_d_achats"
+
+df_age_p$panier<-df_age_p$montant_d_achats/df_age_p$nombre_d_achats
+head(df_age_p)
+```
+
+
+
+Moyen panier par l'age 
+
+```{r , echo=FALSE}
+
+df_age_p2<-merge(df_age,df_age_f, by=c('age','client_id'))
+df_agep2<-aggregate(panier~age,df_age_p, mean)
+head(df_agep2)
+```
+
+
+Moyen panier par categorie d'age  
+
+```{r , echo=FALSE}
+
+
+
+
+
+
+df_age_fp<-aggregate(price~categ_age+client_id, df_norm_age, length)
+
+df_agefp2<-aggregate(price~categ_age,df_age_fp, mean)
+names(df_agefp2)[names(df_agefp2) == "price"] <- "nombre_d_achats"
+
+
+
+df_ageu<-aggregate(price~categ_age+client_id,df_norm_age, sum)
+
+
+
+
+df_age_p1<-merge(df_ageu,df_age_fp, by=c('categ_age','client_id'))
+
+names(df_age_p1)[names(df_age_p1) == "price.x"] <- "montant_d_achats"
+names(df_age_p1)[names(df_age_p1) == "price.y"] <- "nombre_d_achats"
+
+df_age_p1$panier<-df_age_p1$montant_d_achats/df_age_p1$nombre_d_achats
+
+
+
+
+head(df_age_p1)
+
+
+df_agep2t<-aggregate(panier~categ_age,df_age_p1, mean)
+head(df_agep2t)
+
+```
+
+
+
+
+```{r , echo=FALSE}
+fig <- plot_ly(data = df_agep2, x = ~age, y = ~panier, type='scatter', mode='markers'
+)
+fig
+```
+
+
+Verification de la normalite de distribution.
+skewness
+kurtosis
+```{r , echo=FALSE}
+skewness(df_agep2$panier)
+kurtosis(df_agep2$panier)
+```
+Lorsque la taille des échantillons est suffisamment grande (n >30), on peut ignorer le test de normalité sans problème majeur.
+
+Verification d'égalité des variances:
+```{r}
+var.test(df_agep2$panier,df_agep2$age)
+```
+P-value est plus petit que notre coefficioent de risque= 0.05, donc L'hypothese que les variances sont egales est rejeté.Par consequent on ne peut pas utiliser le Test Student pour confirmer le lien entre nos variables statistiquement. 
+
+
+
+Correlation 
+```{r , echo=FALSE}
+cor.test(df_agep2$age,df_agep2$panier,use="complete.obs")
+```
+
+
+
+```{r , echo=FALSE}
+round(cor(df_agep2$age,df_agep2$panier,use="complete.obs")^2,2)
+```
+Coefficient de determination 35%
+
+
+La regression linéaire
+```{r}
+lm1_panier <-lm(panier~age, data=df_agep2) 
+lm1_panier
+            
+```
+Regression lineaire:  35.7333 - 0.2722 * age
+
+
+```{r}
+scatterplot(panier~age, data=df_agep2) 
+            
+```
+
+
+
+
+
+
+
+
+
+
+> 4) **Lien: Age - categorie des livres**
+
+
+**Problématique :** évaluer la dépendence de la catégorie de livres en fonction d'age
+
+
+**Choix du test :** On a 2 variables: - age  - variable quantitative discrete
+                                  - categorie de livre - variable qualitative avec plus que 2 groupes
+    
+Par conséquent le choix de notre test - **test ANOVA**  avec  le facteur = les achats total par age, les groupes= 3 categories de livres
+
+
+
+Anova, test de Ficher 
+
+
+
+
+Préparation de données
+
+```{r , echo=FALSE}
+df_age_cl<-aggregate(id_prod~age+categ, df_norm_age, length)
+
+head(df_age_cl)
+
+
+ 
+#plt<- plt$asDataFrame()
+
+
+#plt2 <- cbind(age = rownames(plt),plt)
+
+#names(plt2)[names(plt2) == "0"] <- "cat0"
+#names(plt2)[names(plt2) == "1"] <- "cat1"
+#names(plt2)[names(plt2) == "2"] <- "cat2"
+#plt2
+
+```
+
+
+```{r , echo=FALSE}
+
+
+plt<-qpvt(df_norm_age,"age", "categ", "n()")
+ 
+plt<- plt$asDataFrame()
+
+
+plt2 <- cbind(age = rownames(plt),plt)
+
+names(plt2)[names(plt2) == "0"] <- "cat0"
+names(plt2)[names(plt2) == "1"] <- "cat1"
+names(plt2)[names(plt2) == "2"] <- "cat2"
+
+
+plt3<-plt2[1:78,1:4]
+
+which(is.na(plt3), arr.ind = TRUE)
+plt3[is.na(plt3)]<-0
+head(plt3)
+```
+
+
+la variable expliquée c'est la catégorie, et la variable explicative c'est l'age
+```{r , echo=FALSE}
+plt31<-plt3[,2:4]
+
+
+```
+
+
+
+
+
+
+
+```{r , echo=FALSE}
+age_prod<-aggregate(id_prod~categ+age,df_norm_age, length)
+
+ 
+```
+
+
+
+
+
+
+
+
+
+```{r}
+
+fig <- plot_ly( y=plt3$cat0,type='box',name='categ 0')
+fig <- fig %>% add_trace(y =plt3$cat1,name='categ 1')  
+fig <- fig %>% add_trace(y =plt3$cat2,name='categ 2') 
+
+fig
+
+            
+```
+
+
+
+
+**Modèle  du test. **
+
+**Problémathique:** Est_ce que les chiffre d'affaires sont liés à categorie de livre?
+
+L'hypothèse H0 : CA et categorie de livres sont indépendants
+L'hypothèse H1 : CA et categorie sont liés
+
+**Méthodologie:**
+* On mésure l'écart entre la variation intragroupe et variation intergroupe.
+* Utilisation de la statistique F(ratio).
+* Calcul de  degré de liberté et définition de p-value.
+* Comparaison de F calculé avec F théorique   
+
+**Interpretation:**
+* si F calcule >F théorique,  rejet de H0 => validation de H1. Donc CA est lié à la division en categories
+soit  
+* si p-value< alfa  (coefficient de risque, standart 0,05), rejet de H0 => validation de H1, CA est lié à la division en categories
+
+
+
+
+Application du Test
+
+```{r , echo=FALSE}
+#res.aov <- age_prod_s %>% anova_test(id_prod ~ categ)
+res.aov <- aov(id_prod ~ categ, data = age_prod)
+res.aov
+summary(res.aov)
+```
+
+
+
+**Vérification des conditions du test ANOVA:**
+
+
+- Observations indépendqntes
+- Les données distribuées normalement(normalité des residus )
+- Pas de donées extêmes
+- Variances des groupes à peu près égales
+- Effectifs par classes à peu près égaux
+ 
+
+
+
+
+Vérification sur la  normalité des residus 
+
+
+```{r , echo=FALSE}
+model <- aov(id_prod ~ categ, data = age_prod)
+model
+```
+```{r , echo=FALSE}
+hist(age_prod$age)
+```
+
+
+
+```{r , echo=FALSE}
+hist(age_prod$id_prod)
+```
+Dans le graphique ci-dessous, les quantiles des résidus sont tracés par rapport aux quantiles de la distribution normale. Une ligne de référence de 45 degrés est également tracée.
+
+```{r , echo=FALSE}
+qqnorm(model$residuals)
+qqline(model$residuals)        
+```
+La courbe de probabilité normale des résidus est utilisée pour vérifier l’hypothèse selon laquelle les résidus sont normalement répartis. Il devrait suivre approximativement une ligne droite qui correspend bien à la distribution normale.
+
+
+On voit le décallage de notre probabilité normale des résidus. Cela signifie que nos résidus ne suivent pas une loi normale, donc la condition du test ANOVA n'est pas réspectée.
+On realise un test  de Kolmogorov-Smirnov pour vérifier plus présisement 
+
+
+
+
+
+```{r , echo=FALSE}
+ks.test(age_prod$id_prod,"pnorm",mean(age_prod$id_prod),sd(age_prod$id_prod))  
+```
+
+
+
+Dans ce cas on applique un test non-parametrique:  Test de Kruskal-Wallis
+
+
+
+```{r , echo=FALSE}
+#kruskal.test(age_prod$id_prod) 
+
+res.kruskal <- age_prod %>% kruskal_test(id_prod ~ categ)
+res.kruskal
+```
+L’estimation eta-carré:
+
+0,01- < 0,06 (petit effet), 0,06 - < 0,14 (effet modéré) et >= 0,14 (effet important).
+
+
+```{r , echo=FALSE}
+age_prod %>%kruskal_effsize(id_prod ~ categ)  
+```
+Dans notre cas l'effet est 42 %:
+
+La dépendence de la catégorie de livres en fonction d'age est 42% 
+
+
+
+
+### Conclusion
+
+
+> Une analyse des différents indicateurs de vente
+
+
+
+* `Chiffre d'affaire total` approté par le site de vente en ligne sur les premiéres années est **11 853 729** euros. Ce qui fait **5,9 millions**  de chiffre d'affaire moyen annuel.  Il est globalement stable
+
+
+* `Chiffre d'affaire moyen` par client fait **1276 ± 477** euros 
+
+
+* `Chiffre d'affaire le plus repandu` par client est autour de **500** euros 
+
+
+* `Tendance d'évaluation de chiffre d'affaire` dans le temps suit une regression linéaire :  **442830 +  1158 * nombre de mois**
+
+
+
+* 50% de chiffre d'affaires sont apportés par **23%** de clients faisants  des achats importants
+
+
+
+* `Repartition du chiffre d'affaires` ne depend pas de categorie de livres
+
+
+
+> Une analyse plus ciblée sur les clients
+
+
+
+* Concernant les clients, nous avons pu les segmenter en 3 grands groupes :
+
+  * 8353 clients individuels, dont le chiffre d’affaires moyen généré est de 1193 euros.
+  * 236 clients de “grands comptes”, dont le chiffre d’affaires moyen généré est de 4158 euros.
+  * 4 clients de “très grands comptes”, dont le chiffre d’affaires moyen généré dépasse les 110 000 euros.
+
+<br><br>
+
+* La proportion des hommes et des femmes représente **48%** et **52%** 
+
+
+
+* Le choix de categorie de livre ne depend pas de genre du client
+
+
+
+* Montant total  d'achats effectués  diminue par rapport à l'augmentaion de l'age de client et suit la  regression linéaire : **641 - 4.32 * age**
+<br><br>
+
+```{r , echo=FALSE}
+fig <- plot_ly(x =table_1$dt , y = table_1$dc  , type = "scatter", mode = 'lines')
+fig <- fig %>% layout(title = 'Tendance d’évaluation du chiffre d’affaires jusqu’a Fév. 2024 ')
+
+
+
+fig
+```
+
+
+
+* La taille du panier moyen baisse avec l'age du client. La regression suivie: **35.7 - 0.27 * age**
+
+
+
+* Le choix de catégorie de livres est défini à 36% par catégorie d'age de client 
+
+
+
+
+<br>
+<br>
+
+
+*Les preferences de categorie de livres par les clients de  differents groupes d'age*
+<br>
+
+
+```{r , echo=FALSE}
+pvta2<-pvta1[,2:4]
+
+final_df <- as.data.frame(t(pvta2))
+
+df <-apply(pvta2,2,FUN= function(x){ x <-round(x/rowSums(pvta2)*100)})
+df<-as.data.frame(df)
+
+
+```
+
+```{r , echo=FALSE}
+pvta2<-pvta1[,2:4]
+
+final_df <- as.data.frame(t(pvta2))
+
+df <-apply(pvta2,2,FUN= function(x){ x <-round(x/rowSums(pvta2)*100)})
+dt<-as.data.frame(df)
+dt$categorie<-rownames(df)
+
+#px.bar(df, x='A', y=['Counts'], color='G', text=df_g['Percentage'].apply(lambda x: '{0:1.2f}%'.format(x)))
+
+
+fig <- plot_ly(dt, x = ~ categorie, y = ~adulte , type = 'bar', name = 'adulte', text=~adulte)
+fig <- fig %>% add_trace(y = ~ junior, name = 'junior',text=~junior)
+fig <- fig %>% add_trace(y = ~ senior, name = 'senior',text=~senior)
+fig <- fig %>% layout(yaxis = list(title = "Nombre d'achats"), barmode = 'stack', title="Pourcentage  d'achats de catégorie d'age dans chaque catégorie des livres(%)")
+
+fig
+
+```
+
+<br>
+<br>
+
+---
+
+
+
+<div class="row">
+<div class="col-md-4">
+
+
+
+
+* La taille du panier moyen des differentes catégories d'age:  
+    - les juniors (17-25) : 42 euros 
+    - les adultes (26-49) : 21 euros
+    - les seniors (50+)   : 16 euros
+
+
+<br>
+
+
+```{r , echo=FALSE}
+fig <- plot_ly(y = df_age_p1$panier[df_age_p1$categ_age=='junior'], type = "box", name='juniors ')
+fig <- fig %>% add_trace(y = df_age_p1$panier[df_age_p1$categ_age=='adulte'],name='adultes')  
+fig <- fig %>% add_trace(y = df_age_p1$panier[df_age_p1$categ_age=='senior'],name='senior') 
+fig <- fig %>% layout(showlegend = FALSE)
+fig
+```
+
+
+</div>
+
+<div class="row">
+<div class="col-md-2">
+</div>
+<div class="row">
+<div class="col-md-4">
+
+
+```{r , echo=FALSE, eval=FALSE}
+# head(df_age_p1)
+max(df_age_p1$montant_d_achats[df_age_p1$categ_age=='junior'])
+max(df_age_p1$montant_d_achats[df_age_p1$categ_age=='adulte'])
+max(df_age_p1$montant_d_achats[df_age_p1$categ_age=='senior'])
+```
+Les montants d'achats maximals par categorie d'age  sur 24 mois d’analyse:
+
+
+  - les juniors (17-25) : 4 643 euros 
+  - les adultes (26-49) : 5 276 euros
+  - les seniors (50+)   : 3 975 euros
+
+
+```{r , echo=FALSE}
+fig <- plot_ly(y = df_age_p1$montant_d_achats[df_age_p1$categ_age=='junior'], type = "box", name='juniors ')
+fig <- fig %>% add_trace(y = df_age_p1$montant_d_achats[df_age_p1$categ_age=='adulte'],name='adultes')  
+fig <- fig %>% add_trace(y = df_age_p1$montant_d_achats[df_age_p1$categ_age=='senior'],name='senior') 
+fig <- fig %>% layout(showlegend = FALSE)
+fig
+```
+
+
+
+</div></div></div></div>
+
+
+
+
+<br>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
