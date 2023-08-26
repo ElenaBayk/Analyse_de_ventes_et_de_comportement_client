@@ -414,7 +414,7 @@ head(df2,nl=5)%>%
 ```
 
 
-### Dictionnaire de nettoyage de données 
+### Dictionnaire de traitement des données 
 
 
 **Cette partie contient:** 
@@ -468,7 +468,7 @@ head(df2,nl=5)%>%
  
 
 
-### Chiffre d'affaire
+### Chiffre d'affaires
 
 
 Dans cette partie les différents indicateurs et graphiques autour du chiffre d'affaires sont présentés.<br>
@@ -502,7 +502,7 @@ head(df2,nl=5)%>%
   kbl() %>%
   kable_styling()
 ```
-**Chiffre d'affaire total**
+**Chiffre d'affaires total**
 
   
 
@@ -622,7 +622,7 @@ length(df_ca$client_id[df_ca$CA_client>113630])
 
 
 
->L'écart-type de chiffre d'affaire
+>L'écart-type de chiffre d'affaires
 
 ```{r}
 sd(df_ca_norm$CA_client)
@@ -645,7 +645,7 @@ kurtosis(df_ca_norm$CA_client)
 
 
 
->**L’évolution  du chiffre d'affaire dans le temps**
+>**L’évolution  du chiffre d'affaires dans le temps**
 
 
 ```{r}
@@ -869,7 +869,7 @@ fig <- plot_ly(dfr,labels=~categ, values =~CA,type='pie',
         textinfo = 'label+percent',
         marker = list(colors = colors,
                       line = list(color = '#FFFFFF', width = 1)))
-fig <- fig %>% layout(title = "chiffre d'affaire par categories",
+fig <- fig %>% layout(title = "chiffre d'affaires par categories",
          xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
          yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE))
 
@@ -1000,11 +1000,11 @@ Dans notre cas l'effet est minimal est presque égal à 0 .
 
 >**Conclusion:
 
-Le chiffre d'affaire de depend pas de categorie de livres**
+Le chiffre d'affaires de depend pas de categorie de livres**
 
 
 
-
+Distribution du chiffre d'affaires par catégorie
 ```{r , echo=FALSE}
  
 fig <- plot_ly( y=df_norm$price[df_norm$categ==0],type='box',name='categ 0')
@@ -1284,7 +1284,7 @@ fig
 
 
 
-### Profil client
+### Profil  client
 
 Cette partie est consacrée  au profile de clients et à l'étude de leur  comportement. <br>
 
