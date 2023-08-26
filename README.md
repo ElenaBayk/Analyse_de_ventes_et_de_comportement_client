@@ -1,6 +1,6 @@
 #  Analyse de ventes et de comportement client   <a href="https://www.r-project.org/" target="_blank"><img style="margin: 10px" src="https://profilinator.rishav.dev/skills-assets/r.svg" alt="R" height="50" /></a>
 
- LL’étude des ventes et de comportement des clients en ligne de la librairie `Lapage`
+ L’étude des ventes et de comportement des clients en ligne de la librairie `Lapage`
 
 > Projet  a l'origine d'`Openclassrooms formation "Data analyst"`.  <br> <br>
 ![image](https://github.com/ElenaBayk/Analyse_de_ventes_et_de_comportement_client/assets/141257192/2798b626-6213-4ce2-a83e-63100aa2f706)
@@ -38,7 +38,7 @@ II. Une analyse plus ciblée sur les clients :
 
 
 ---
-⭐ `Compétences :``
+⭐ `Compétences :`
 - Réaliser un test statistique
 - Réaliser une analyse bivariée pour interpréter des données
 - Analyser des séries temporelles
